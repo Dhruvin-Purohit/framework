@@ -186,7 +186,7 @@ export class SapphireClient extends Client {
 	 * The registered stores.
 	 * @since 1.0.0
 	 */
-	public stores: Set<Store<Piece>>;
+	public stores: Map<string, Store<Piece>>;
 
 	public constructor(options: ClientOptions = {}) {
 		super(options);
@@ -212,7 +212,7 @@ export class SapphireClient extends Client {
 		this.events = new EventStore().registerPath(join(__dirname, '..', 'events'));
 		this.preconditions = new PreconditionStore().registerPath(join(__dirname, '..', 'preconditions'));
 
-		this.stores = new Set();
+		this.stores = new Map();
 		this.registerStore(this.arguments) //
 			.registerStore(this.commands)
 			.registerStore(this.events)
@@ -248,7 +248,7 @@ export class SapphireClient extends Client {
 	 * @param rootDirectory The root directory to register pieces at.
 	 */
 	public registerUserDirectories(rootDirectory = getRootData().root) {
-		for (const store of this.stores) {
+		for (const store of this.stores.values()) {
 			store.registerPath(join(rootDirectory, store.name));
 		}
 	}
@@ -258,7 +258,7 @@ export class SapphireClient extends Client {
 	 * @param store The store to register.
 	 */
 	public registerStore<T extends Piece>(store: Store<T>): this {
-		this.stores.add((store as unknown) as Store<Piece>);
+		this.stores.set(store.name, (store as unknown) as Store<Piece>);
 		return this;
 	}
 
@@ -268,7 +268,7 @@ export class SapphireClient extends Client {
 	 * @param store The store to deregister.
 	 */
 	public deregisterStore<T extends Piece>(store: Store<T>): this {
-		this.stores.delete((store as unknown) as Store<Piece>);
+		this.stores.delete(store.name);
 		return this;
 	}
 
@@ -291,7 +291,7 @@ export class SapphireClient extends Client {
 		}
 
 		// Loads all stores, then call login:
-		await Promise.all([...this.stores].map((store) => store.loadAll()));
+		await Promise.all([...this.stores.values()].map((store) => store.loadAll()));
 		const login = await super.login(token);
 
 		// Call post-login plugins:
